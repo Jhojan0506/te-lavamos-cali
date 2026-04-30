@@ -1,0 +1,51 @@
+<!--
+  Snippet para reemplazar el <script> de envío en tu agendar.html.
+  Copia el bloque <script> al final y elimina el envío anterior basado solo en wa.me.
+  Asegúrate de tener tu form con id="form-agendar" y los inputs con name="...".
+-->
+<script>
+  // 👉 Cambia esto por la URL de tu API en producción
+  const API_URL = "https://TU-DOMINIO-DEL-BACKEND.com/api/solicitudes";
+
+  const form = document.getElementById("form-agendar");
+  form?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const btn = form.querySelector('button[type="submit"]');
+    btn.disabled = true;
+    const original = btn.innerHTML;
+    btn.innerHTML = "Enviando...";
+
+    const fd = new FormData(form);
+    const payload = {
+      nombre:    fd.get("nombre"),
+      telefono:  fd.get("telefono"),
+      direccion: fd.get("direccion"),
+      servicio:  fd.get("servicio"),
+      detalles:  fd.get("detalles") || "",
+      website:   fd.get("website") || "", // honeypot anti-bot (campo oculto)
+    };
+
+    try {
+      const res = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || "Error del servidor");
+
+      // Abre WhatsApp con el mensaje listo (link devuelto por el backend)
+      if (data.whatsapp?.link) window.open(data.whatsapp.link, "_blank");
+      form.reset();
+      alert("¡Solicitud enviada! Te contactaremos por WhatsApp.");
+    } catch (err) {
+      alert("No pudimos enviar la solicitud: " + err.message);
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = original;
+    }
+  });
+</script>
+
+<!-- Campo oculto honeypot — agrégalo dentro de tu <form>: -->
+<!-- <input type="text" name="website" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px" aria-hidden="true"> -->
