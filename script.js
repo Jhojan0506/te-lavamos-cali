@@ -1,35 +1,144 @@
-/* Te Lavamos Cali — JS */
-const NUMERO_WHATSAPP = "573226835629"; // ⚠️ reemplaza con tu número (indicativo + número, sin + ni espacios)
-
-// Navbar scroll
-const navbar = document.getElementById("navbar");
-if (navbar) {
-  const onScroll = () => navbar.classList.toggle("scrolled", window.scrollY > 30);
-  window.addEventListener("scroll", onScroll);
-  onScroll();
-}
-
-// Menú mobile
-const toggle = document.getElementById("navToggle");
-const links = document.getElementById("navLinks");
-if (toggle && links) {
-  toggle.addEventListener("click", () => links.classList.toggle("open"));
-  links.querySelectorAll("a").forEach(a => a.addEventListener("click", () => links.classList.remove("open")));
-}
-
-// Formulario → WhatsApp
-const form = document.getElementById("agendarForm");
-if (form) {
-  form.addEventListener("submit", (e) => {
-    e.preventDefault();
-    const data = new FormData(form);
-    const msg =
-      `*Nuevo agendamiento — Te Lavamos Cali*%0A%0A` +
-      `👤 *Nombre:* ${data.get("nombre")}%0A` +
-      `📱 *Teléfono:* ${data.get("telefono")}%0A` +
-      `🧽 *Servicio:* ${data.get("servicio")}%0A` +
-      `📍 *Dirección:* ${data.get("direccion")}%0A` +
-      `📝 *Detalles:* ${data.get("mensaje") || "—"}`;
-    window.open(`https://wa.me/${NUMERO_WHATSAPP}?text=${msg}`, "_blank");
+// ============================================================
+//  SCROLL REVEAL
+// ============================================================
+function revealOnScroll() {
+  document.querySelectorAll(".reveal").forEach(el => {
+    if (el.getBoundingClientRect().top < window.innerHeight - 100) {
+      el.classList.add("active");
+    }
   });
+}
+window.addEventListener("scroll", revealOnScroll);
+window.addEventListener("load", revealOnScroll);
+
+
+// ============================================================
+//  SLIDER ANTES/DESPUÉS
+// ============================================================
+const slider  = document.querySelector(".slider");
+const after   = document.querySelector(".after");
+
+if (slider && after) {
+  slider.addEventListener("input", e => {
+    after.style.clipPath = `inset(0 ${100 - e.target.value}% 0 0)`;
+  });
+}
+
+const baSlider = document.getElementById("ba-slider");
+const baAfter  = document.querySelector(".ba-after");
+
+if (baSlider && baAfter) {
+  let isDragging = false;
+  baSlider.addEventListener("mousedown", () => isDragging = true);
+  window.addEventListener("mouseup",    () => isDragging = false);
+  window.addEventListener("mousemove",  e => {
+    if (!isDragging) return;
+    const rect    = baSlider.parentElement.getBoundingClientRect();
+    let x         = Math.min(Math.max(e.clientX - rect.left, 0), rect.width);
+    const percent = (x / rect.width) * 100;
+    baSlider.style.left       = percent + "%";
+    baAfter.style.clipPath    = `inset(0 ${100 - percent}% 0 0)`;
+  });
+}
+
+
+// ============================================================
+//  FORMULARIO → WHATSAPP
+// ============================================================
+const TU_NUMERO = "573226835629";
+
+const form = document.getElementById("formulario");
+
+if (form) {
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+
+    const nombre    = document.getElementById("nombre").value.trim();
+    const direccion = document.getElementById("direccion").value.trim();
+    const telefono  = document.getElementById("telefono").value.trim();
+    const servicio  = document.getElementById("servicio").value;
+    const detalles  = document.getElementById("detalles").value.trim();
+
+    if (!nombre || !direccion || !telefono || !servicio) {
+      mostrarAlerta("⚠️ Por favor completa todos los campos obligatorios.", "error");
+      return;
+    }
+
+    if (!/^[0-9+\s]{7,15}$/.test(telefono)) {
+      mostrarAlerta("⚠️ Ingresa un número de teléfono válido.", "error");
+      return;
+    }
+
+    const ahora = new Date().toLocaleString("es-CO", {
+      timeZone: "America/Bogota",
+      dateStyle: "short",
+      timeStyle: "short"
+    });
+
+    const mensaje =
+`🧼 *NUEVA SOLICITUD — Te Lavamos Cali*
+──────────────────────────
+👤 *Nombre:*      ${nombre}
+📍 *Dirección:*   ${direccion}
+📞 *Teléfono:*    ${telefono}
+🛋️ *Servicio:*    ${servicio}
+📝 *Detalles:*    ${detalles || "Sin detalles adicionales"}
+──────────────────────────
+🕐 *Fecha:* ${ahora}`;
+
+    const btn = form.querySelector("button[type='submit']");
+    btn.textContent = "Abriendo WhatsApp...";
+    btn.disabled = true;
+
+    setTimeout(() => {
+      window.open(
+        `https://wa.me/${TU_NUMERO}?text=${encodeURIComponent(mensaje)}`,
+        "_blank"
+      );
+
+      mostrarAlerta("✅ ¡Listo! Se abrió WhatsApp con tu solicitud. Solo da click en Enviar.", "exito");
+      form.reset();
+      btn.textContent = "📲 Enviar por WhatsApp";
+      btn.disabled = false;
+    }, 800);
+  });
+}
+
+
+// ============================================================
+//  ALERTA VISUAL
+// ============================================================
+function mostrarAlerta(mensaje, tipo) {
+  const prev = document.getElementById("alerta-form");
+  if (prev) prev.remove();
+
+  const alerta = document.createElement("div");
+  alerta.id = "alerta-form";
+  alerta.textContent = mensaje;
+
+  Object.assign(alerta.style, {
+    position:     "fixed",
+    bottom:       "100px",
+    left:         "50%",
+    transform:    "translateX(-50%)",
+    background:   tipo === "exito" ? "#00e5c0" : "#ff4d4d",
+    color:        tipo === "exito" ? "#060d1a" : "#fff",
+    padding:      "14px 28px",
+    borderRadius: "50px",
+    fontWeight:   "700",
+    fontSize:     "15px",
+    fontFamily:   "'DM Sans', sans-serif",
+    boxShadow:    "0 8px 30px rgba(0,0,0,0.3)",
+    zIndex:       "9999",
+    maxWidth:     "90vw",
+    textAlign:    "center",
+    transition:   "opacity .4s ease",
+  });
+
+  document.body.appendChild(alerta);
+
+  setTimeout(() => {
+    alerta.style.opacity = "0";
+    setTimeout(() => alerta.remove(), 400);
+  }, 4000);
 }
