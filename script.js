@@ -160,3 +160,53 @@ function mostrarAlerta(mensaje, tipo) {
     setTimeout(() => alerta.remove(), 400);
   }, 4000);
 }
+
+// ============================================================
+//  NAVBAR: SCROLL + HAMBURGUESA MÓVIL
+// ============================================================
+const navbar    = document.getElementById("navbar");
+const navToggle = document.getElementById("navToggle");
+const navLinks  = document.getElementById("navLinks");
+
+// Scroll: agrega clase .scrolled al bajar
+if (navbar) {
+  window.addEventListener("scroll", () => {
+    navbar.classList.toggle("scrolled", window.scrollY > 40);
+  });
+}
+
+// Hamburguesa: abre/cierra el menú
+if (navToggle && navLinks) {
+  navToggle.addEventListener("click", () => {
+    navLinks.classList.toggle("open");
+    // Cambia el ícono entre barras y X
+    const icon = navToggle.querySelector("i");
+    if (navLinks.classList.contains("open")) {
+      icon.classList.replace("fa-bars", "fa-xmark");
+      document.body.style.overflow = "hidden";
+    } else {
+      icon.classList.replace("fa-xmark", "fa-bars");
+      document.body.style.overflow = "";
+    }
+  });
+
+  // Cierra el menú al hacer click en cualquier enlace
+  navLinks.querySelectorAll("a").forEach(link => {
+    link.addEventListener("click", () => {
+      navLinks.classList.remove("open");
+      const icon = navToggle.querySelector("i");
+      icon.classList.replace("fa-xmark", "fa-bars");
+      document.body.style.overflow = "";
+    });
+  });
+
+  // Cierra al hacer click fuera del menú
+  document.addEventListener("click", (e) => {
+    if (!navbar.contains(e.target) && navLinks.classList.contains("open")) {
+      navLinks.classList.remove("open");
+      const icon = navToggle.querySelector("i");
+      icon.classList.replace("fa-xmark", "fa-bars");
+      document.body.style.overflow = "";
+    }
+  });
+}
