@@ -160,32 +160,70 @@
 </section>
 
 <!-- TESTIMONIOS -->
-<section class="section">
+<section class="section" id="testimonios">
   <div class="container">
     <div class="section-head">
       <span class="eyebrow">Testimonios</span>
       <h2 class="section-title">Lo que dicen nuestros clientes</h2>
     </div>
+
+    <!-- Comentarios fijos -->
     <div class="testimonials-grid">
       <div class="testimonial">
-        <span class="quote">”</span>
+        <span class="quote">“</span>
         <span class="stars">★★★★★</span>
         <p>"Quedé impresionada, mi sofá blanco volvió a verse impecable. 100% recomendados."</p>
         <div class="who"><strong>Laura M.</strong><span>Cliente en Ciudad Jardín</span></div>
       </div>
       <div class="testimonial">
-        <span class="quote">”</span>
+        <span class="quote">“</span>
         <span class="stars">★★★★★</span>
         <p>"Llegaron puntuales y trabajaron con muchísimo cuidado. El carro quedó como nuevo."</p>
         <div class="who"><strong>Carlos R.</strong><span>Cliente en Pance</span></div>
       </div>
       <div class="testimonial">
-        <span class="quote">”</span>
+        <span class="quote">“</span>
         <span class="stars">★★★★★</span>
         <p>"Mi colchón olía rarísimo, ahora huele a limpio y se ve perfecto. Excelente servicio."</p>
         <div class="who"><strong>Andrea G.</strong><span>Cliente en El Peñón</span></div>
       </div>
     </div>
+
+    <!-- Comentarios de usuarios desde Firebase -->
+    <div class="testimonials-grid" id="comentarios-firebase" style="margin-top:24px;"></div>
+
+    <!-- Formulario para comentar -->
+    <div class="form-card" style="margin-top:48px; max-width:560px;">
+      <h3 style="margin-bottom:20px; font-size:22px;">Deja tu comentario</h3>
+      <div class="form-group">
+        <label for="c-nombre">Tu nombre</label>
+        <input type="text" id="c-nombre" placeholder="Ej: María López" maxlength="40">
+      </div>
+      <div class="form-group">
+        <label for="c-barrio">Barrio / Sector</label>
+        <input type="text" id="c-barrio" placeholder="Ej: El Peñón" maxlength="40">
+      </div>
+      <div class="form-group">
+        <label>Calificación</label>
+        <div id="star-selector" style="display:flex;gap:8px;font-size:28px;cursor:pointer;color:var(--gold);">
+          <span data-val="1">☆</span>
+          <span data-val="2">☆</span>
+          <span data-val="3">☆</span>
+          <span data-val="4">☆</span>
+          <span data-val="5">☆</span>
+        </div>
+        <input type="hidden" id="c-estrellas" value="0">
+      </div>
+      <div class="form-group">
+        <label for="c-texto">Tu comentario</label>
+        <textarea id="c-texto" placeholder="Cuéntanos tu experiencia..." maxlength="300"></textarea>
+      </div>
+      <button class="btn btn-primary" id="btn-comentar" style="width:100%;justify-content:center;">
+        Publicar comentario
+      </button>
+      <p id="comentario-msg" style="margin-top:12px;font-size:14px;text-align:center;color:var(--gold-deep);display:none;"></p>
+    </div>
+
   </div>
 </section>
 
@@ -261,28 +299,28 @@
   const app = initializeApp(firebaseConfig);
   const db  = getFirestore(app);
 
-  // ── Cargar comentarios ──────────────────────────────────
   async function cargarComentarios() {
     const contenedor = document.getElementById("comentarios-firebase");
     contenedor.innerHTML = "";
-    const q = query(collection(db, "comentarios"), orderBy("fecha", "desc"));
-    const snap = await getDocs(q);
-    snap.forEach(doc => {
-      const d = doc.data();
-      const stars = "★".repeat(d.estrellas) + "☆".repeat(5 - d.estrellas);
-      const div = document.createElement("div");
-      div.className = "testimonial";
-      div.innerHTML = `
-        <span class="quote">“</span>
-        <span class="stars">${stars}</span>
-        <p>"${d.texto}"</p>
-        <div class="who"><strong>${d.nombre}</strong><span>Cliente en ${d.barrio}</span></div>`;
-      contenedor.appendChild(div);
-    });
+    try {
+      const q = query(collection(db, "comentarios"), orderBy("fecha", "desc"));
+      const snap = await getDocs(q);
+      snap.forEach(doc => {
+        const d = doc.data();
+        const stars = "★".repeat(d.estrellas) + "☆".repeat(5 - d.estrellas);
+        const div = document.createElement("div");
+        div.className = "testimonial";
+        div.innerHTML = `
+          <span class="quote">“</span>
+          <span class="stars" style="color:var(--gold)">${stars}</span>
+          <p>"${d.texto}"</p>
+          <div class="who"><strong>${d.nombre}</strong><span>Cliente en ${d.barrio}</span></div>`;
+        contenedor.appendChild(div);
+      });
+    } catch(e) { console.error(e); }
   }
   cargarComentarios();
 
-  // ── Selector de estrellas ───────────────────────────────
   const starSpans = document.querySelectorAll("#star-selector span");
   let estrellasSeleccionadas = 0;
 
@@ -300,13 +338,12 @@
     });
   });
 
-  // ── Publicar comentario ─────────────────────────────────
   document.getElementById("btn-comentar").addEventListener("click", async () => {
-    const nombre   = document.getElementById("c-nombre").value.trim();
-    const barrio   = document.getElementById("c-barrio").value.trim();
-    const texto    = document.getElementById("c-texto").value.trim();
+    const nombre    = document.getElementById("c-nombre").value.trim();
+    const barrio    = document.getElementById("c-barrio").value.trim();
+    const texto     = document.getElementById("c-texto").value.trim();
     const estrellas = parseInt(document.getElementById("c-estrellas").value);
-    const msg      = document.getElementById("comentario-msg");
+    const msg       = document.getElementById("comentario-msg");
 
     if (!nombre || !barrio || !texto || estrellas === 0) {
       msg.style.display = "block";
@@ -319,25 +356,30 @@
     btn.textContent = "Publicando...";
     btn.disabled    = true;
 
-    await addDoc(collection(db, "comentarios"), {
-      nombre, barrio, texto, estrellas,
-      fecha: serverTimestamp()
-    });
+    try {
+      await addDoc(collection(db, "comentarios"), {
+        nombre, barrio, texto, estrellas,
+        fecha: serverTimestamp()
+      });
+      document.getElementById("c-nombre").value = "";
+      document.getElementById("c-barrio").value = "";
+      document.getElementById("c-texto").value  = "";
+      document.getElementById("c-estrellas").value = "0";
+      estrellasSeleccionadas = 0;
+      starSpans.forEach(x => x.textContent = "☆");
+      msg.style.display = "block";
+      msg.style.color   = "var(--gold-deep)";
+      msg.textContent   = "✅ ¡Comentario publicado! Gracias por tu opinión.";
+      cargarComentarios();
+    } catch(e) {
+      msg.style.display = "block";
+      msg.style.color   = "#e74c3c";
+      msg.textContent   = "Error al publicar. Intenta de nuevo.";
+      console.error(e);
+    }
 
-    document.getElementById("c-nombre").value  = "";
-    document.getElementById("c-barrio").value  = "";
-    document.getElementById("c-texto").value   = "";
-    document.getElementById("c-estrellas").value = "0";
-    estrellasSeleccionadas = 0;
-    starSpans.forEach(x => x.textContent = "☆");
-
-    msg.style.display = "block";
-    msg.style.color   = "var(--gold-deep)";
-    msg.textContent   = "✅ ¡Comentario publicado! Gracias por tu opinión.";
-    btn.textContent   = "Publicar comentario";
-    btn.disabled      = false;
-
-    cargarComentarios();
+    btn.textContent = "Publicar comentario";
+    btn.disabled    = false;
   });
 </script>
 <script src="script.js"></script>
