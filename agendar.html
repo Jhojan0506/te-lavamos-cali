@@ -78,7 +78,7 @@
       <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center;">
         <i class="fa-brands fa-whatsapp"></i> Enviar por WhatsApp
       </button>
-      <p style="text-align:center; font-size:13px; color:var(--text-muted); margin-top:14px;">
+      <p id="form-msg" style="text-align:center; font-size:13px; color:var(--text-muted); margin-top:14px;">
         Al enviar abriremos WhatsApp con tu mensaje listo.
       </p>
     </form>
@@ -102,5 +102,74 @@
 
 <a href="https://wa.me/573226835629" class="fab-wa" target="_blank" aria-label="WhatsApp"><i class="fa-brands fa-whatsapp"></i></a>
 <script src="script.js"></script>
+
+<!-- Firebase: guardar solicitudes en Firestore -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, collection, addDoc, serverTimestamp }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCM58RGu5y-DY1JQgbXiq_nfAULVOmBTN4",
+    authDomain: "telavamoscali.firebaseapp.com",
+    projectId: "telavamoscali",
+    storageBucket: "telavamoscali.firebasestorage.app",
+    messagingSenderId: "95318385550",
+    appId: "1:95318385550:web:af497736d886dd5029badf"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db  = getFirestore(app);
+
+  document.getElementById("agendarForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const nombre    = document.getElementById("nombre").value.trim();
+    const telefono  = document.getElementById("telefono").value.trim();
+    const servicio  = document.getElementById("servicio").value;
+    const direccion = document.getElementById("direccion").value.trim();
+    const mensaje   = document.getElementById("mensaje").value.trim();
+    const btn       = e.submitter;
+    const msg       = document.getElementById("form-msg");
+
+    // Guardar en Firestore
+    try {
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Enviando...';
+
+      await addDoc(collection(db, "solicitudes"), {
+        nombre,
+        telefono,
+        servicio,
+        direccion,
+        mensaje: mensaje || "Sin mensaje adicional",
+        fecha: serverTimestamp()
+      });
+
+      msg.style.color = "green";
+      msg.textContent = "✅ Solicitud guardada. Abriendo WhatsApp...";
+
+    } catch (err) {
+      console.error("Error al guardar:", err);
+      msg.style.color = "#e74c3c";
+      msg.textContent = "⚠️ No se pudo guardar, pero igual abriremos WhatsApp.";
+    }
+
+    // Abrir WhatsApp siempre, aunque falle Firestore
+    const texto =
+`🧼 *Nueva solicitud — Te Lavamos Cali*
+👤 *Nombre:*    ${nombre}
+📞 *Teléfono:*  ${telefono}
+🛋️ *Servicio:*  ${servicio}
+📍 *Dirección:* ${direccion}
+📝 *Mensaje:*   ${mensaje || "Sin mensaje adicional"}`;
+
+    window.open("https://wa.me/573226835629?text=" + encodeURIComponent(texto), "_blank");
+
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-brands fa-whatsapp"></i> Enviar por WhatsApp';
+  });
+</script>
+
 </body>
 </html>
